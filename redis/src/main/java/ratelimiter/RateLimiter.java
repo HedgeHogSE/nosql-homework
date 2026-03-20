@@ -22,8 +22,21 @@ public class RateLimiter {
   }
 
   public boolean pass() {
-    // TODO: Implementation
-    return false;
+
+    long now = System.currentTimeMillis();
+    long boundary = now - timeWindowSeconds * 1000;
+
+    redis.zremrangeByScore(label, 0, boundary);
+
+    long currentCount = redis.zcard(label);
+
+    if (currentCount >= maxRequestCount) return false;
+
+    redis.zadd(label, now, String.valueOf(System.nanoTime()));
+
+    redis.expire(label, timeWindowSeconds);
+
+    return true;
   }
 
   public static void main(String[] args) {
